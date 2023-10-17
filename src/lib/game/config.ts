@@ -1,0 +1,1 @@
+export const _TimeTick = 0.2;

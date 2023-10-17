@@ -1,6 +1,20 @@
 {
   "extends": "expo/tsconfig.base",
   "compilerOptions": {
-    "strict": true
+    "strict": true,
+    "paths": {
+      "@components/*": [
+        "./src/lib/components/*"
+      ],
+      "@types/*": [
+        "./src/lib/@types/3"
+      ],
+      "@game/*": [
+        "./src/lib/game/*"
+      ]
+    },
+    "typeRoots": [
+      "./src/lib/@types"
+    ],
   }
 }
