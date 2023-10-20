@@ -8,6 +8,12 @@ import Stats from 'three/examples/jsm/libs/stats.module';
 import * as seedrandom from 'seedrandom';
 
 import HUD from './hud';
+import { World } from 'ecsy';
+import { C_Transform, C_SpatialGridObject, C_Sprite } from './components';
+import { S_Renderer } from './systems';
+import Map from './map';
+import { _MAPSIZE, _MAXENTITIES } from './config';
+import SpatialGrid from './spatialGrid';
 
 
 export default class Game {
@@ -16,13 +22,16 @@ export default class Game {
     private composer: EffectComposer;
     private running: boolean = false;
     private renderer: THREE.WebGLRenderer;
-    private frustumSize: number = 400;
+    private frustumSize: number = 40;
     public seed: string;
     private controls;
     private clock: THREE.Clock = new THREE.Clock();
     private time: number = 0;
     public hud: HUD;
     private stats: Stats;
+    private world: any;
+    private map: Map
+    private spatialGrid: SpatialGrid;
 
     constructor(main: HTMLElement, seed: string) {
         this.seed = seed
@@ -53,6 +62,7 @@ export default class Game {
         document.body.appendChild(this.stats.dom)
         
         this.initWorld();
+        this.initMap();
         this.initEventListeners();
 
         this.running = true;
@@ -67,11 +77,26 @@ export default class Game {
         seedrandom(seed, { global: true });
     }
 
+    initMap() {
+        this.map = new Map(this.scene, this.world, this.controls);
+        this.spatialGrid = new SpatialGrid(6, new THREE.Box3(new THREE.Vector3(-_MAPSIZE / 2, -_MAPSIZE / 2, 0), new THREE.Vector3(_MAPSIZE / 2, _MAPSIZE / 2, 0)));
+        // this.spatialGrid.drawGrid(this.scene);
+    }
+
     //FOR ECS
     initWorld() {
         this.changeSeed(this.seed);
-    }
+        this.world = new World();
 
+        //Register all components
+        this.world.registerComponent(C_Transform);
+        this.world.registerComponent(C_SpatialGridObject);
+        this.world.registerComponent(C_Sprite);
+
+        //Register all systems
+        this.world.registerSystem(S_Renderer);
+    }
+    
     initEventListeners() {
         //on window resize
         window.addEventListener('resize', this.onWindowResize.bind(this), false);
@@ -113,7 +138,7 @@ export default class Game {
 
             }
             this.time += deltaTime;
-            
+            this.world.execute(deltaTime, 0);
             
             // this.world.execute(deltaTime, 0);
         }

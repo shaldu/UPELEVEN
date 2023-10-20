@@ -1,6 +1,8 @@
 import * as THREE from 'three';
 import { Helpers } from './helpers';
-
+import type { Entity } from "ecsy";
+import { C_Transform } from './components';
+import { C_SpatialGridObject } from './components/c_spatialGridObject';
 
 export default class SpatialGrid {
 
@@ -36,11 +38,15 @@ export default class SpatialGrid {
         scene.add(gridHelper);
     }
 
-    addObject(object: Lifesource) {
+    addObject(object: Entity) {
+        const transformComponent = object.getComponent(C_Transform);
+        const spatialgridComponent = object.getMutableComponent(C_SpatialGridObject);
+        if (!transformComponent || !spatialgridComponent) return;
+
         //add lifesource to grid
-        const [x,y] = object.position;
-        const w = object.dimensions.x;
-        const h = object.dimensions.y;
+        const [x,y] = transformComponent.position;
+        const w = transformComponent.scale;
+        const h = transformComponent.scale;
 
         const i1 = this.getCellIndex(new THREE.Vector2(x - w/2, y-h/2));
         const i2 = this.getCellIndex(new THREE.Vector2(x + w/2, y+h/2));
@@ -53,7 +59,7 @@ export default class SpatialGrid {
             for (let y = i1[1], yn = i2[1]; y <= yn; ++y) {
                 const xi = x - i1[0];
 
-                const head: {next: any, prev: any, object: Lifesource} = {
+                const head: {next: any, prev: any, object: Entity} = {
                     next: null,
                     prev: null,
                     object: object
@@ -72,12 +78,12 @@ export default class SpatialGrid {
 
         }
         
-        object.cells.min = i1;
-        object.cells.max = i2;
-        object.cells.nodes = nodes;        
+        spatialgridComponent.cells.min = i1;
+        spatialgridComponent.cells.max = i2;
+        spatialgridComponent.cells.nodes = nodes;        
     }
 
-    findNearbyObjects(position: THREE.Vector2, dimensions: THREE.Vector2): Array<Lifesource> {
+    findNearbyObjects(position: THREE.Vector2, dimensions: THREE.Vector2): Array<Entity> {
         const [x,y] = position;
         const w = dimensions.x;
         const h = dimensions.y;
@@ -85,7 +91,7 @@ export default class SpatialGrid {
         const i1 = this.getCellIndex(new THREE.Vector2(x - w/2, y-h/2));
         const i2 = this.getCellIndex(new THREE.Vector2(x + w/2, y+h/2));
 
-        const objects: Array<Lifesource> = [];
+        const objects: Array<Entity> = [];
         const queryId = this.queryIds++;
 
         for (let x = i1[0], xn = i2[0]; x <=xn; ++x) {
@@ -108,16 +114,18 @@ export default class SpatialGrid {
         return objects;
     }
 
-    removeObject(object: Lifesource) {
-    
-        const i1 = object.cells.min;
-        const i2 = object.cells.max;
+    removeObject(object: Entity) {
+        const spatialgridComponent = object.getMutableComponent(C_SpatialGridObject);
+        if (!spatialgridComponent) return;
+
+        const i1 = spatialgridComponent.cells.min;
+        const i2 = spatialgridComponent.cells.max;
 
         for (let x = i1[0], xn = i2[0]; x <=xn; ++x) {
             for (let y = i1[1], yn = i2[1]; y <= yn; ++y) {
                 const xi = x - i1[0];
                 const yi = y - i1[1];
-                const node = object.cells.nodes[xi][yi];
+                const node = spatialgridComponent.cells.nodes[xi][yi];
 
                 if (node.next) {
                     node.next.prev = node.prev;
@@ -133,21 +141,24 @@ export default class SpatialGrid {
             }
         }
     
-        object.cells.min = null;
-        object.cells.max = null;
-        object.cells.nodes = null;    
+        spatialgridComponent.cells.min = null;
+        spatialgridComponent.cells.max = null;
+        spatialgridComponent.cells.nodes = null;    
     }
 
-    updateObject(object: Lifesource) {
+    updateObject(object: Entity) {
+        const transformComponent = object.getComponent(C_Transform);
+        const spatialgridComponent = object.getMutableComponent(C_SpatialGridObject);
+        if (!transformComponent || !spatialgridComponent) return;
 
-        const [x,y] = object.position;
-        const w = object.dimensions.x;
-        const h = object.dimensions.y;
+        const [x,y] = transformComponent.position;
+        const w = transformComponent.scale;
+        const h = transformComponent.scale;
 
         const i1 = this.getCellIndex(new THREE.Vector2(x - w/2, y-h/2));
         const i2 = this.getCellIndex(new THREE.Vector2(x + w/2, y+h/2));
 
-        if (i1[0] === object.cells.min[0] && i1[1] === object.cells.min[1] && i2[0] === object.cells.max[0] && i2[1] === object.cells.max[1]) {
+        if (i1[0] === spatialgridComponent.cells.min[0] && i1[1] === spatialgridComponent.cells.min[1] && i2[0] === spatialgridComponent.cells.max[0] && i2[1] === spatialgridComponent.cells.max[1]) {
             return;
         }
 
@@ -174,7 +185,7 @@ export default class SpatialGrid {
     }
 
     update(deltaTime:number) {
-
+        
     }
 
 }
