@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 
-export default class EditorTile {
+export default class Tile {
 
     position: THREE.Vector2;
     rotation: number;

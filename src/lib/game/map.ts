@@ -1,31 +1,30 @@
 import type { Entity, World } from "ecsy"
 import * as THREE from 'three';
 import { _MAPSIZE, _MAXENTITIES, _MAXTILES, _SHEETHEIGHT, _SHEETWIDTH, _SPRITEHEIGHT, _SPRITEWIDTH } from './config';
+//@ts-ignore
 import textureImage from './sprites/spritesheet.jpeg';
 import { InstancedUniformsMesh } from 'three-instanced-uniforms-mesh';
 import vertexShader from './shaders/vertexShader.glsl';
 import fragmentShader from './shaders/fragmentShader.glsl';
-
 import type { OrbitControls } from "three/examples/jsm/controls/OrbitControls";
-import EditorTile from "./editor/editorTile";
+import Tile from "./tile";
 
 export default class Map {
     instancedMeshEntities: InstancedUniformsMesh<any> | undefined;
     isntancedMeshTiles: InstancedUniformsMesh<any> | undefined;
 
     editorMode: boolean = true;
-
-    editorTiles: EditorTile[] = [];
     mousePosition: THREE.Vector2 = new THREE.Vector2(0, 0);
-    hoveredEditorTile: EditorTile | undefined;
+    hoveredTile: Tile | undefined;
+    tiles: Tile[] = [];
     public texture: THREE.Texture = new THREE.TextureLoader().load(textureImage);
 
-    constructor(readonly scene: THREE.Scene, readonly world: World, readonly orbitControls: OrbitControls) {
+    constructor(readonly scene: THREE.Scene, readonly world: World | undefined, readonly orbitControls: OrbitControls) {
 
         if (this.editorMode) {
             this.createDebugGrid();
             this.createEmptyMap();
-            this.initEditorEvents();
+            this.initEvents();
         } else {
 
         }
@@ -52,12 +51,9 @@ export default class Map {
     }
 
     //add editor Events
-    initEditorEvents() {
+    initEvents() {
         //add mouse hover to tiles
-        //get the mouse position to world position
-        //get the tile at the world position
-    
-        
+
         window.addEventListener('mousemove', (event) => {
             //@ts-ignore
             const rect = this.orbitControls.domElement.getBoundingClientRect();
@@ -77,14 +73,24 @@ export default class Map {
             }
 
             const i = this.mousePosition.x + this.mousePosition.y * _MAPSIZE;
-            const tile = this.editorTiles[i];
+            const tile = this.tiles[i];
             if(tile !== undefined){
-                this.hoveredEditorTile = tile;
+                this.hoveredTile = tile;
             }   
             
         });
 
+        window.addEventListener('keydown', (event) => {
+            if (event.key === '1') {
+                //spawn something?
 
+            }  
+        });        
+    }
+
+    update(deltaTime: number, timeDialation: number){
+        console.log('run');
+        
     }
 
     //create a empty map
@@ -99,7 +105,8 @@ export default class Map {
                 const i = x + y * _MAPSIZE;
                 const position = new THREE.Vector2(x - (_MAPSIZE / 2) + 1, y - (_MAPSIZE / 2) + 1);
                 this.isntancedMeshTiles?.setUniformAt('vPosition', i, new THREE.Vector4(position.x, position.y, 1, 0));
-                this.editorTiles[i] = new EditorTile(new THREE.Vector2(position.x, position.y), 0, 0, i);
+                this.tiles[i] = new Tile(new THREE.Vector2(position.x, position.y), 0, 0, i);
+                // this.tiles[i].drawTile(this, this.tiles[i].typeId);
             }
         }
     }
@@ -176,7 +183,6 @@ export default class Map {
     }
 
     setTextureOffset(instancedMesh: typeof InstancedUniformsMesh | any, matrixId: number, offset: THREE.Vector2) {
-
         //offset.x = columnPosition
         //offset.y = rowPosition
         const x = (((offset.x * _SPRITEWIDTH)) / _SHEETWIDTH);

@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
+import { CustomOrbitControls as OrbitControls } from './customOrbitControls';
 import { EffectComposer, EffectPass } from 'postprocessing';
 import { RenderPass } from 'postprocessing';
 import { BloomEffect } from 'postprocessing';
@@ -12,7 +12,7 @@ import { World } from 'ecsy';
 import { C_Transform, C_SpatialGridObject, C_Sprite } from './components';
 import { S_Renderer } from './systems';
 import Map from './map';
-import { _MAPSIZE, _MAXENTITIES } from './config';
+import { _MAPSIZE, _MAXENTITIES, _TIMEDIALATION } from './config';
 import SpatialGrid from './spatialGrid';
 
 
@@ -29,9 +29,9 @@ export default class Game {
     private time: number = 0;
     public hud: HUD;
     private stats: Stats;
-    private world: any;
-    private map: Map
-    private spatialGrid: SpatialGrid;
+    private world: World | undefined;
+    public map: Map | undefined;
+    private spatialGrid: SpatialGrid | undefined;
 
     constructor(main: HTMLElement, seed: string) {
         this.seed = seed
@@ -44,7 +44,7 @@ export default class Game {
         this.composer.addPass(new RenderPass(this.scene, this.camera));
         const bloomEffect: BloomEffect = new BloomEffect(
             {
-                luminanceThreshold: 0.3,
+                luminanceThreshold: 0.4,
                 luminanceSmoothing: 0.1,
                 intensity: 1.4
             }
@@ -55,6 +55,9 @@ export default class Game {
 
         //ORBITCONTROL
         this.controls = new OrbitControls(this.camera, this.renderer.domElement);
+        //set custom keys
+        this.controls.zoomToCursor = true;
+        
 
         //STATS
         this.stats = new Stats();
@@ -111,7 +114,7 @@ export default class Game {
         const renderer = new THREE.WebGLRenderer({ antialias: true });
         renderer.setSize(window.innerWidth, window.innerHeight)
         renderer.setAnimationLoop(this.animation.bind(this));
-        // renderer.setClearColor(0x222222, 1);
+        renderer.setClearColor(0x333333, 1);
 
         return renderer;
     }
@@ -125,24 +128,23 @@ export default class Game {
     }
 
     animation() {
-        let deltaTime = this.clock.getDelta();    
-        this.composer.render(deltaTime);
+        let deltaTime = this.clock.getDelta();        
 
         if (this.running === true) {
             this.controls.update();
             this.renderer.render(this.scene, this.camera);
+            this.composer.render(deltaTime);
 
             //run only every 60 fps
             if (this.time > 1 / 60) {
                 this.time = 0;
-
+                //use _TIMEDIALATION to slow or speed up the game
+                this.map?.update(deltaTime, _TIMEDIALATION);
+                this.world?.execute(deltaTime, this.time);
             }
             this.time += deltaTime;
-            this.world.execute(deltaTime, 0);
-            
-            // this.world.execute(deltaTime, 0);
         }
-        this.stats.update()
 
+        this.stats.update()
     }
 }

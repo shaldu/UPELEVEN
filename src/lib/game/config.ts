@@ -10,3 +10,5 @@ export const _MAXENTITIES = 128*128;
 export const _MAXTILES = 256*256;
 
 export const _MAPSIZE = 32;
+
+export const _TIMEDIALATION = 1;

@@ -28,9 +28,10 @@ export default class HUD {
         if (this.generalFolder) this.generalFolder.destroy();
         this.generalFolder = this.gui.addFolder('General');
 
-        const obj = { seed: this.game.seed };
+        const obj = { seed: this.game.seed, mapString: '' };
         this.generalFolder.add(obj, 'seed').name('Seed').onChange((seed: string) => {
             //DO SOMETHING
         });
+
     }
 }
