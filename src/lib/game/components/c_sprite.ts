@@ -21,7 +21,7 @@ export class C_Sprite extends Component<C_Sprite>
     tickSpeed: number = _TimeTick / 1;
     matrixId: number | undefined;
     playbackSpeed: number = 1;
-    instancedMeshRef: typeof InstancedUniformsMesh | undefined;
+    instancedMeshRef: InstancedUniformsMesh<any> | undefined;
 
     
 }

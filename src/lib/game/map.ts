@@ -2,32 +2,23 @@ import type { Entity, World } from "ecsy"
 import * as THREE from 'three';
 import { _MAPSIZE, _MAXENTITIES, _MAXTILES, _SHEETHEIGHT, _SHEETWIDTH, _SPRITEHEIGHT, _SPRITEWIDTH } from './config';
 //@ts-ignore
-import textureImage from './sprites/spritesheet.jpeg';
+import textureImage from './sprites/spritesheet.png';
 import { InstancedUniformsMesh } from 'three-instanced-uniforms-mesh';
 import vertexShader from './shaders/vertexShader.glsl';
 import fragmentShader from './shaders/fragmentShader.glsl';
 import type { OrbitControls } from "three/examples/jsm/controls/OrbitControls";
-import Tile from "./tile";
+
 
 export default class Map {
     instancedMeshEntities: InstancedUniformsMesh<any> | undefined;
-    isntancedMeshTiles: InstancedUniformsMesh<any> | undefined;
 
-    editorMode: boolean = true;
     mousePosition: THREE.Vector2 = new THREE.Vector2(0, 0);
-    hoveredTile: Tile | undefined;
-    tiles: Tile[] = [];
     public texture: THREE.Texture = new THREE.TextureLoader().load(textureImage);
 
     constructor(readonly scene: THREE.Scene, readonly world: World | undefined, readonly orbitControls: OrbitControls) {
-
-        if (this.editorMode) {
-            this.createDebugGrid();
-            this.createEmptyMap();
-            this.initEvents();
-        } else {
-
-        }
+        this.initInstancedMeshEntities();
+        this.initEvents();
+        this.createDebugGrid();
     }
 
     createDebugGrid() {
@@ -66,17 +57,6 @@ export default class Map {
             let my3dPosition = this.worldPointFromScreenPoint( viewportDown, mySceneCamera );
             this.mousePosition.x = Math.floor(my3dPosition.x + (_MAPSIZE / 2) - .5);
             this.mousePosition.y = Math.floor(my3dPosition.y + (_MAPSIZE / 2) - .5);
-
-            //if mouse is outside of the map, return
-            if (this.mousePosition.x < 0 || this.mousePosition.y < 0 || this.mousePosition.x >= _MAPSIZE || this.mousePosition.y >= _MAPSIZE) {
-                return;
-            }
-
-            const i = this.mousePosition.x + this.mousePosition.y * _MAPSIZE;
-            const tile = this.tiles[i];
-            if(tile !== undefined){
-                this.hoveredTile = tile;
-            }   
             
         });
 
@@ -89,59 +69,8 @@ export default class Map {
     }
 
     update(deltaTime: number, timeDialation: number){
-        console.log('run');
+        // console.log('run');
         
-    }
-
-    //create a empty map
-    createEmptyMap() {
-        this.initInstancedMeshTiles();
-        this.createEmptyTiles();
-    }
-
-    createEmptyTiles(){
-        for (let x = 0; x < _MAPSIZE; x++) {
-            for (let y = 0; y < _MAPSIZE; y++) {
-                const i = x + y * _MAPSIZE;
-                const position = new THREE.Vector2(x - (_MAPSIZE / 2) + 1, y - (_MAPSIZE / 2) + 1);
-                this.isntancedMeshTiles?.setUniformAt('vPosition', i, new THREE.Vector4(position.x, position.y, 1, 0));
-                this.tiles[i] = new Tile(new THREE.Vector2(position.x, position.y), 0, 0, i);
-                // this.tiles[i].drawTile(this, this.tiles[i].typeId);
-            }
-        }
-    }
-
-    initInstancedMeshTiles() {
-        this.texture.magFilter = THREE.NearestFilter;
-        this.texture.minFilter = THREE.NearestFilter;
-
-        this.texture.wrapS = THREE.RepeatWrapping;
-        this.texture.wrapT = THREE.RepeatWrapping;
-
-        this.texture.repeat.set(_SPRITEWIDTH / _SHEETWIDTH, _SPRITEHEIGHT / _SHEETHEIGHT);
-
-        this.texture.minFilter = THREE.NearestFilter;
-        this.texture.magFilter = THREE.NearestFilter;
-        
-        const scale = 1;
-
-        const geometry = new THREE.PlaneGeometry(scale, scale);
-        const material = new THREE.ShaderMaterial({
-            uniforms: {
-                texture1: { value: this.texture },
-                repeat: { value: new THREE.Vector2((_SPRITEWIDTH / _SHEETWIDTH), _SPRITEHEIGHT / _SHEETHEIGHT) },
-                texOffset: { value: new THREE.Vector2(0, 0) },
-                vPosition: { value: new THREE.Vector4(0, 0, 0, 0) },
-                opacity: { value: 0 }
-            },
-            vertexShader: vertexShader,
-            fragmentShader: fragmentShader,
-            transparent: true
-        });
-
-        this.isntancedMeshTiles = new InstancedUniformsMesh(geometry, material, _MAXENTITIES);
-
-        this.scene.add(this.isntancedMeshTiles);
     }
 
     initInstancedMeshEntities() {
@@ -166,7 +95,7 @@ export default class Map {
                 repeat: { value: new THREE.Vector2(_SPRITEWIDTH / _SHEETWIDTH, _SPRITEHEIGHT / _SHEETHEIGHT) },
                 texOffset: { value: new THREE.Vector2(0, 0) },
                 vPosition: { value: new THREE.Vector4(0, 0, 0, 0) },
-                opacity: { value: 1 }
+                opacity: { value: 0 }
             },
             vertexShader: vertexShader,
             fragmentShader: fragmentShader,
@@ -174,7 +103,6 @@ export default class Map {
         });
 
         this.instancedMeshEntities = new InstancedUniformsMesh(geometry, material, _MAXENTITIES);
-
         this.scene.add(this.instancedMeshEntities);
     }
 

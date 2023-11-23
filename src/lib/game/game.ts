@@ -9,8 +9,8 @@ import * as seedrandom from 'seedrandom';
 
 import HUD from './hud';
 import { World } from 'ecsy';
-import { C_Transform, C_SpatialGridObject, C_Sprite } from './components';
-import { S_Renderer } from './systems';
+import { C_Transform, C_SpatialGridObject, C_Sprite, C_Movement } from './components';
+import { S_Movement, S_Renderer } from './systems';
 import Map from './map';
 import { _MAPSIZE, _MAXENTITIES, _TIMEDIALATION } from './config';
 import SpatialGrid from './spatialGrid';
@@ -38,17 +38,17 @@ export default class Game {
         this.scene = new THREE.Scene();
         this.renderer = this.newRenderer();
         this.camera = new THREE.OrthographicCamera((this.frustumSize * this.aspectRatio) / -2, (this.frustumSize * this.aspectRatio) / 2, this.frustumSize / 2, this.frustumSize / -2, -10, 1000);
-      
+
         //ADD POSTPROCESSING
         this.composer = new EffectComposer(this.renderer);
         this.composer.addPass(new RenderPass(this.scene, this.camera));
         const bloomEffect: BloomEffect = new BloomEffect(
             {
-                luminanceThreshold: 0.4,
+                luminanceThreshold: 1,
                 luminanceSmoothing: 0.1,
                 intensity: 1.4
             }
-        );  
+        );
         this.composer.addPass(new EffectPass(this.camera, bloomEffect));
 
         main.appendChild(this.renderer.domElement);
@@ -57,17 +57,17 @@ export default class Game {
         this.controls = new OrbitControls(this.camera, this.renderer.domElement);
         //set custom keys
         this.controls.zoomToCursor = true;
-        
+
 
         //STATS
         this.stats = new Stats();
         this.hud = new HUD(this);
         document.body.appendChild(this.stats.dom)
-        
+
         this.initWorld();
         this.initMap();
         this.initEventListeners();
-
+        this.createEntities();
         this.running = true;
     }
 
@@ -86,6 +86,18 @@ export default class Game {
         // this.spatialGrid.drawGrid(this.scene);
     }
 
+    createEntities() {
+        for (let i = 0; i < _MAXENTITIES; i++) {
+            if (this.world) {
+                let entity = this.world.createEntity();
+                entity.addComponent(C_Transform);
+                entity.addComponent(C_SpatialGridObject);
+                entity.addComponent(C_Sprite, { instancedMeshRef: this.map?.instancedMeshEntities, matrixId: i });
+                entity.addComponent(C_Movement, { speed: 1, movementType: 'roaming' })
+            }
+        }
+    }
+
     //FOR ECS
     initWorld() {
         this.changeSeed(this.seed);
@@ -95,11 +107,13 @@ export default class Game {
         this.world.registerComponent(C_Transform);
         this.world.registerComponent(C_SpatialGridObject);
         this.world.registerComponent(C_Sprite);
+        this.world.registerComponent(C_Movement);
 
         //Register all systems
         this.world.registerSystem(S_Renderer);
+        this.world.registerSystem(S_Movement);
     }
-    
+
     initEventListeners() {
         //on window resize
         window.addEventListener('resize', this.onWindowResize.bind(this), false);
@@ -114,7 +128,7 @@ export default class Game {
         const renderer = new THREE.WebGLRenderer({ antialias: true });
         renderer.setSize(window.innerWidth, window.innerHeight)
         renderer.setAnimationLoop(this.animation.bind(this));
-        renderer.setClearColor(0x333333, 1);
+        renderer.setClearColor(0x222222, 1);
 
         return renderer;
     }
@@ -128,7 +142,7 @@ export default class Game {
     }
 
     animation() {
-        let deltaTime = this.clock.getDelta();        
+        let deltaTime = this.clock.getDelta();
 
         if (this.running === true) {
             this.controls.update();
