@@ -1,3 +1,4 @@
+import { _SEED } from '../game/config';
 import Game from '../game/game';
 import React, { useRef, useEffect } from 'react';
 
@@ -8,7 +9,7 @@ export default (props: Props) => {
 
     useEffect(() => {
         if (mainRef.current) {
-            new Game(mainRef.current, 'test2');
+            new Game(mainRef.current, _SEED);
         }
     }, [mainRef]);
 

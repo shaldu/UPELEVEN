@@ -55,8 +55,8 @@ export default class Map {
 
             // Get 3d point
             let my3dPosition = this.worldPointFromScreenPoint( viewportDown, mySceneCamera );
-            this.mousePosition.x = Math.floor(my3dPosition.x + (_MAPSIZE / 2) - .5);
-            this.mousePosition.y = Math.floor(my3dPosition.y + (_MAPSIZE / 2) - .5);
+            this.mousePosition.x = my3dPosition.x
+            this.mousePosition.y = my3dPosition.y;
             
         });
 

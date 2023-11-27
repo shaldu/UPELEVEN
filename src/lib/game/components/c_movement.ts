@@ -12,6 +12,9 @@ export class C_Movement extends Component<C_Movement>
     durationMax: number = 2;
     delay = 0;
 
+    radius = 5;
+    acceptanceRadius = 0.1;
+
     //pathing
     isPathing: boolean = false;
 
@@ -21,13 +24,14 @@ export class C_Movement extends Component<C_Movement>
 }
 
 C_Movement.schema = {
-    speed: { type: Types.Number, default: 1 },
+    speed: { type: Types.Number, default: 2 },
     movementType: { type: Types.String, default: 'roaming' },
     target: { type: Types.Ref, default: undefined },
     targetPosition: { type: Vector2Type, default: undefined },
     durationCurrent: { type: Types.Number, default: 0 },
     durationMax: { type: Types.Number, default: 2 },
     delay: { type: Types.Number, default: 0 },
-    isPathing: { type: Types.Boolean, default: false }
-
+    radius: { type: Types.Number, default: 5 },
+    isPathing: { type: Types.Boolean, default: false },
+    acceptanceRadius: { type: Types.Number, default: 0.1 }
 }

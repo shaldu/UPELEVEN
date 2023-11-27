@@ -8,11 +8,11 @@ import Stats from 'three/examples/jsm/libs/stats.module';
 import * as seedrandom from 'seedrandom';
 
 import HUD from './hud';
-import { World } from 'ecsy';
-import { C_Transform, C_SpatialGridObject, C_Sprite, C_Movement } from './components';
+import { Entity, World } from 'ecsy';
+import { C_Transform, C_SpatialGridObject, C_Sprite, C_Movement, C_Stats } from './components';
 import { S_Movement, S_Renderer } from './systems';
 import Map from './map';
-import { _MAPSIZE, _MAXENTITIES, _TIMEDIALATION } from './config';
+import { _MAPSIZE, _MAXENTITIES, _TIMEDIALATION, addEntityToMap, entityMap, getFreeEntityId, removeEntityFromMap, setTimedialation } from './config';
 import SpatialGrid from './spatialGrid';
 
 
@@ -32,6 +32,10 @@ export default class Game {
     private world: World | undefined;
     public map: Map | undefined;
     private spatialGrid: SpatialGrid | undefined;
+
+    private timeDialationSave: number = 1;
+    private timeDialationPaused: boolean = false;
+    private selectedEntity: Entity | undefined;
 
     constructor(main: HTMLElement, seed: string) {
         this.seed = seed
@@ -87,15 +91,37 @@ export default class Game {
     }
 
     createEntities() {
-        for (let i = 0; i < _MAXENTITIES; i++) {
+
+        for (let i = 0; i < 4; i++) {
             if (this.world) {
+                let id = getFreeEntityId();
                 let entity = this.world.createEntity();
-                entity.addComponent(C_Transform);
+                addEntityToMap(id, entity);
+                let randomX = Math.floor(Math.random() * _MAPSIZE) - _MAPSIZE / 2;
+                let randomY = Math.floor(Math.random() * _MAPSIZE) - _MAPSIZE / 2;
+                entity.addComponent(C_Transform, { position: new THREE.Vector2(randomX, randomY) });
                 entity.addComponent(C_SpatialGridObject);
-                entity.addComponent(C_Sprite, { instancedMeshRef: this.map?.instancedMeshEntities, matrixId: i });
+                entity.addComponent(C_Sprite, { instancedMeshRef: this.map?.instancedMeshEntities, matrixId: id, rowPosition: 0, columnPosition: 1 });
                 entity.addComponent(C_Movement, { speed: 1, movementType: 'roaming' })
+                entity.addComponent(C_Stats, { name: 'Chicken', type: 'chicken', id: id });
             }
         }
+        //create wolf
+        for (let i = 0; i < 2; i++) {
+            if (this.world) {
+                let id = getFreeEntityId();
+                let entity = this.world.createEntity();
+                addEntityToMap(id, entity);
+                let randomX = Math.floor(Math.random() * _MAPSIZE) - _MAPSIZE / 2;
+                let randomY = Math.floor(Math.random() * _MAPSIZE) - _MAPSIZE / 2;
+                entity.addComponent(C_Transform, { position: new THREE.Vector2(randomX, randomY) });
+                entity.addComponent(C_SpatialGridObject);
+                entity.addComponent(C_Sprite, { instancedMeshRef: this.map?.instancedMeshEntities, matrixId: id, rowPosition: 4, columnPosition: 5 });
+                entity.addComponent(C_Movement, { speed: 2, movementType: 'roaming' })
+                entity.addComponent(C_Stats, { name: 'Wolf', type: 'wolf', id: id });
+            }
+        }
+
     }
 
     //FOR ECS
@@ -108,15 +134,74 @@ export default class Game {
         this.world.registerComponent(C_SpatialGridObject);
         this.world.registerComponent(C_Sprite);
         this.world.registerComponent(C_Movement);
+        this.world.registerComponent(C_Stats);
 
         //Register all systems
         this.world.registerSystem(S_Renderer);
         this.world.registerSystem(S_Movement);
     }
 
+    showEntityStats(entity: Entity | undefined) {
+        if (entity == undefined) return;
+        this.hud.showEntityStats(entity);
+    }
+
     initEventListeners() {
         //on window resize
         window.addEventListener('resize', this.onWindowResize.bind(this), false);
+        //on keydown events
+        document.addEventListener('keydown', this.onKeyDown.bind(this), false);
+        //on mouse click
+        document.addEventListener('click', this.onClick.bind(this), false);
+    }
+
+    onClick(event: MouseEvent) {
+        //get the mouse position from the map
+        let mousePosition = this.map?.mousePosition ?? new THREE.Vector2(0, 0);
+        //loop through all entities and check the closest one
+        let closestEntity: Entity | undefined;
+        let closestDistance: number = 100000;
+        entityMap.forEach((entity, id) => {
+            let transformComponent = entity.getComponent(C_Transform);
+
+            if (transformComponent) {
+                let distance = transformComponent.position.distanceTo(mousePosition);
+
+                if (distance < closestDistance) {
+                    closestDistance = distance;
+                    if (distance < 1.5) {
+                        closestEntity = entity;
+                    }
+                }
+            }
+        });
+        if (closestEntity) {
+            this.selectedEntity = closestEntity;
+        }
+    }
+
+    onKeyDown(event: KeyboardEvent) {
+        switch (event.code) {
+            case 'ArrowUp':
+                this.increaseDialation();
+                this.timeDialationPaused = false;
+                break;
+            case 'ArrowDown':
+                this.decreaseDialation();
+                this.timeDialationPaused = false;
+                break;
+            case 'KeyP':
+                if (this.timeDialationPaused === false) {
+                    this.pauseDialation();
+                    this.timeDialationPaused = true;
+                } else {
+                    this.resumeDialation();
+                    this.timeDialationPaused = false;
+                }
+                break;
+            default:
+                break;
+        }
     }
 
     onWindowResize() {
@@ -133,12 +218,48 @@ export default class Game {
         return renderer;
     }
 
+
     start() {
         this.running = true;
     }
 
     pause() {
         this.running = false;
+    }
+
+    increaseDialation(step: number = 1) {
+        if (this.timeDialationPaused === true) {
+            this.resumeDialation();
+        }
+        //if time dialation is 1 change step to 0.1
+        if (_TIMEDIALATION <= 1) {
+            step = 0.1;
+        }
+
+        setTimedialation(_TIMEDIALATION + step);
+    }
+
+    decreaseDialation(step: number = 1) {
+        if (this.timeDialationPaused === true) {
+            this.resumeDialation();
+        }
+
+        //if time dialation is less than 1 change step to 0.1
+        if (_TIMEDIALATION <= 1) {
+            step = 0.1;
+        }
+        if (_TIMEDIALATION - step < 0.1) return;
+
+        setTimedialation(_TIMEDIALATION - step);
+    }
+
+    pauseDialation() {
+        this.timeDialationSave = _TIMEDIALATION;
+        setTimedialation(0);
+    }
+
+    resumeDialation() {
+        setTimedialation(this.timeDialationSave);
     }
 
     animation() {
@@ -148,6 +269,9 @@ export default class Game {
             this.controls.update();
             this.renderer.render(this.scene, this.camera);
             this.composer.render(deltaTime);
+
+            //HUD UPDATE
+            this.showEntityStats(this.selectedEntity || undefined);
 
             //run only every 60 fps
             if (this.time > 1 / 60) {
