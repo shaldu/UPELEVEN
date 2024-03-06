@@ -9,11 +9,12 @@ import * as seedrandom from 'seedrandom';
 
 import HUD from './hud';
 import { Entity, World } from 'ecsy';
-import { C_Transform, C_SpatialGridObject, C_Sprite, C_Movement, C_Stats } from './components';
+import { C_Transform, C_SpatialGridObject, C_Sprite, C_Movement, C_AnimalStats, C_FoodStats } from './components';
 import { S_Movement, S_Renderer } from './systems';
 import Map from './map';
 import { _MAPSIZE, _MAXENTITIES, _TIMEDIALATION, addEntityToMap, entityMap, getFreeEntityId, removeEntityFromMap, setTimedialation } from './config';
 import SpatialGrid from './spatialGrid';
+import Cycle from './cycle';
 
 
 export default class Game {
@@ -36,6 +37,7 @@ export default class Game {
     private timeDialationSave: number = 1;
     private timeDialationPaused: boolean = false;
     private selectedEntity: Entity | undefined;
+    private cycle: Cycle | undefined;
 
     constructor(main: HTMLElement, seed: string) {
         this.seed = seed
@@ -72,6 +74,11 @@ export default class Game {
         this.initMap();
         this.initEventListeners();
         this.createEntities();
+
+        if (this.world != undefined && this.map != undefined) {
+            this.cycle = new Cycle(this, this.world, this.map);
+        }
+
         this.running = true;
     }
 
@@ -92,35 +99,6 @@ export default class Game {
 
     createEntities() {
 
-        for (let i = 0; i < 4; i++) {
-            if (this.world) {
-                let id = getFreeEntityId();
-                let entity = this.world.createEntity();
-                addEntityToMap(id, entity);
-                let randomX = Math.floor(Math.random() * _MAPSIZE) - _MAPSIZE / 2;
-                let randomY = Math.floor(Math.random() * _MAPSIZE) - _MAPSIZE / 2;
-                entity.addComponent(C_Transform, { position: new THREE.Vector2(randomX, randomY) });
-                entity.addComponent(C_SpatialGridObject);
-                entity.addComponent(C_Sprite, { instancedMeshRef: this.map?.instancedMeshEntities, matrixId: id, rowPosition: 0, columnPosition: 1 });
-                entity.addComponent(C_Movement, { speed: 1, movementType: 'roaming' })
-                entity.addComponent(C_Stats, { name: 'Chicken', type: 'chicken', id: id });
-            }
-        }
-        //create wolf
-        for (let i = 0; i < 2; i++) {
-            if (this.world) {
-                let id = getFreeEntityId();
-                let entity = this.world.createEntity();
-                addEntityToMap(id, entity);
-                let randomX = Math.floor(Math.random() * _MAPSIZE) - _MAPSIZE / 2;
-                let randomY = Math.floor(Math.random() * _MAPSIZE) - _MAPSIZE / 2;
-                entity.addComponent(C_Transform, { position: new THREE.Vector2(randomX, randomY) });
-                entity.addComponent(C_SpatialGridObject);
-                entity.addComponent(C_Sprite, { instancedMeshRef: this.map?.instancedMeshEntities, matrixId: id, rowPosition: 4, columnPosition: 5 });
-                entity.addComponent(C_Movement, { speed: 2, movementType: 'roaming' })
-                entity.addComponent(C_Stats, { name: 'Wolf', type: 'wolf', id: id });
-            }
-        }
 
     }
 
@@ -134,7 +112,8 @@ export default class Game {
         this.world.registerComponent(C_SpatialGridObject);
         this.world.registerComponent(C_Sprite);
         this.world.registerComponent(C_Movement);
-        this.world.registerComponent(C_Stats);
+        this.world.registerComponent(C_AnimalStats);
+        this.world.registerComponent(C_FoodStats);
 
         //Register all systems
         this.world.registerSystem(S_Renderer);
@@ -278,6 +257,7 @@ export default class Game {
                 this.time = 0;
                 //use _TIMEDIALATION to slow or speed up the game
                 this.map?.update(deltaTime, _TIMEDIALATION);
+                this.cycle?.update(deltaTime);
                 this.world?.execute(deltaTime, this.time);
             }
             this.time += deltaTime;

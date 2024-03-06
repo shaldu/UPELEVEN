@@ -6,8 +6,8 @@ export const _TimeTick = 0.2;
 export const _SPRITEWIDTH = 18;
 export const _SPRITEHEIGHT = 18;
 
-export const _SHEETWIDTH = 108;
-export const _SHEETHEIGHT = 54;
+export const _SHEETWIDTH = 90;
+export const _SHEETHEIGHT = 72;
 
 export const _MAXENTITIES = 32*32;
 export const _MAXTILES = 256*256;
@@ -16,6 +16,15 @@ export const _MAPSIZE = 32;
 
 export let _TIMEDIALATION = 1;
 export const _SEED = "test";
+
+/**
+ * 
+ * @param weight Value between 0 and 100
+ * @returns returns true if the random number is less than the weight
+ */
+export function weightedBooleanPercantage(weight: number) {
+    return (Math.random() * 100) < weight;
+}
 
 export function setTimedialation(speed: number) {
     _TIMEDIALATION = speed;

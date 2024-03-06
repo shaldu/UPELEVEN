@@ -2,7 +2,7 @@
 import * as THREE from 'three';
 import { GUI } from 'three/examples/jsm/libs/lil-gui.module.min.js'
 import type Game from './game';
-import { C_Movement, C_Stats, C_Transform } from './components';
+import { C_Movement, C_AnimalStats, C_Transform } from './components';
 import { Entity } from 'ecsy';
 
 export default class HUD {
@@ -56,15 +56,21 @@ export default class HUD {
             this.entityStatsFolder.destroy();
             this.entityStatsFolder = this.gui.addFolder('Entity Stats');
         }
+        if (entity == undefined) return;
         this.observingEntity = entity;
 
-        const statsComponent = entity.getComponent(C_Stats) as C_Stats;
+        const statsComponent = entity.getComponent(C_AnimalStats) as C_AnimalStats;
         const transformComponent = entity.getComponent(C_Transform) as C_Transform;
         const movementComponent = entity.getMutableComponent(C_Movement) as C_Movement;
 
-        let obj = { id: statsComponent.id, name: statsComponent.name, type: statsComponent.type, position: transformComponent.position as THREE.Vector2 };
+        if (statsComponent == undefined || transformComponent == undefined || movementComponent == undefined) return;
+
+        let obj = { id: statsComponent.id, generation: statsComponent.generation, energy: statsComponent.energyCurrent, hunger: statsComponent.hungerCurrent, name: statsComponent.name, type: statsComponent.type, position: transformComponent.position as THREE.Vector2 };
         obj = { ...obj, ...{ speed: movementComponent.speed, movementType: movementComponent.movementType, radius: movementComponent.radius } };
         this.entityStatsFolder.add(obj, 'id').name('ID');
+        this.entityStatsFolder.add(obj, 'generation').name('Generation');
+        this.entityStatsFolder.add(obj, 'energy').name('Energy');
+        this.entityStatsFolder.add(obj, 'hunger').name('Hunger');
         this.entityStatsFolder.add(obj, 'name').name('Name');
         this.entityStatsFolder.add(obj, 'type').name('Type');
         //display position as x and y in the same row

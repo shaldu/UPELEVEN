@@ -5,14 +5,15 @@ import { Vector2Type } from './types';
 export class C_Movement extends Component<C_Movement>
 {
     speed: number = 1;
-    movementType: 'roaming' | 'stationary' | 'attacking' | 'fleeing' | 'pathing' = 'roaming';
+    movementType: 'roaming' | 'stationary' | 'resting' | 'attacking' | 'fleeing' | 'pathing' = 'roaming';
 
     //cooldowns
     durationCurrent: number = 0;
     durationMax: number = 2;
     delay = 0;
 
-    radius = 5;
+    radiusMin = 4;
+    radius = 8;
     acceptanceRadius = 0.1;
 
     //pathing
@@ -31,7 +32,8 @@ C_Movement.schema = {
     durationCurrent: { type: Types.Number, default: 0 },
     durationMax: { type: Types.Number, default: 2 },
     delay: { type: Types.Number, default: 0 },
-    radius: { type: Types.Number, default: 5 },
+    radius: { type: Types.Number, default: 8 },
+    radiusMin: { type: Types.Number, default: 4 },
     isPathing: { type: Types.Boolean, default: false },
     acceptanceRadius: { type: Types.Number, default: 0.1 }
 }
